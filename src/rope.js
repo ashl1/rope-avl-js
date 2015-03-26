@@ -66,13 +66,27 @@ RopePosition.prototype.determineInfo = function(ropeLeaf) {
 		if (this._isDefinedLinesColumn()) {
 			this.count = 0;
 
-			for (var iLines = 1, iSymbols = 1; (iLines < this.lines) || ((iLines === this.lines) && (iSymbols < this.symbolsLastLine)); this.count += 1) {
+      var iLines, iSymbols, prevISymbols = 1;
+			for (iLines = 1, iSymbols = 1; ((iLines < this.lines) || ((iLines === this.lines) && (iSymbols < this.symbolsLastLine))) && (this.count < ropeLeaf.length); this.count += 1) {
 				if (ropeLeaf.value[this.count] == '\n') {
 					iLines += 1;
+          prevISymbols = iSymbols;
 					iSymbols = 1;
 				} else
 					iSymbols += 1;
 			}
+			
+			// update info if necessary
+			if (this.count >= ropeLeaf.length) {
+        this.lines = iLines;
+        
+      }
+			if (iLines > this.lines) {
+        this.symbolsLastLine = prevISymbols;
+      } else { // iLines <= this.lines
+        
+        if (iSymbols >= this.symbolsLastLine)
+      }
 		}
 		return;
 	}
@@ -369,6 +383,7 @@ RopeNode.prototype.getDot = function(prevPath, direction) {
 }
 
 /**
+ * Return rightmost RopeNode of indexOrPosition. If the position is upper bounds - return the rightmost RopeNode and the position of rightmost symbol of that node.
  * @param {int|RopePosition} indexOrPosition The absolute symbol index as if rope contains one big string OR The absolute position of symbol the return node must contain. This position may not define index of symbol because the search only use lines/column info
  * @return {{node: RopeNode, position: RopePosition}} Always return RopePosition with full info
  */
@@ -616,6 +631,11 @@ Rope.prototype.remove = function(startPosition, endPosition) {
 			this.rope = RopeNode("")
 	}
 }
+
+/*
+ * Should return empty Rope("") for the position not in bounds
+ * 
+ */
 
 Rope.prototype.substr = function(startPosition, endPosition) {
 	startPosition = isDefined(startPosition)? RopePosition(startPosition): 0;
