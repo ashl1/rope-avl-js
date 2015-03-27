@@ -46,10 +46,16 @@ RopePosition.prototype.concat = function (position) {
 		)
 }
 
+/*
+ * Set the position to found one, if not found case to the position before
+ * @return {bool} True, if position found in exactly the selected column, false - otherwise.
+ */
+
 RopePosition.prototype.determineInfo = function(ropeLeaf) {
+  // ASSUME position is inside ropeLeaf, so position <= ropeLeaf.length
+  
 	if (this._isDefinedCount()){
 		if (!this._isDefinedLinesColumn()) {
-
 			this.lines = 0;
 			this.symbolsLastLine = 0;
 
@@ -60,35 +66,32 @@ RopePosition.prototype.determineInfo = function(ropeLeaf) {
 				} else
 					this.symbolsLastLine += 1;
 			}
-			return;
+			return true;
 		}
 	} else { // count is not defined
 		if (this._isDefinedLinesColumn()) {
 			this.count = 0;
 
-      var iLines, iSymbols, prevISymbols = 1;
-			for (iLines = 1, iSymbols = 1; ((iLines < this.lines) || ((iLines === this.lines) && (iSymbols < this.symbolsLastLine))) && (this.count < ropeLeaf.length); this.count += 1) {
+      var iLines, iSymbols, prevISymbols = 0;
+			for (iLines = 1, iSymbols = 0; (iLines < this.lines) || ((iLines === this.lines) && (iSymbols < this.symbolsLastLine)); this.count += 1) {
 				if (ropeLeaf.value[this.count] == '\n') {
 					iLines += 1;
           prevISymbols = iSymbols;
-					iSymbols = 1;
+					iSymbols = 0;
 				} else
 					iSymbols += 1;
 			}
 			
-			// update info if necessary
-			if (this.count >= ropeLeaf.length) {
-        this.lines = iLines;
-        
-      }
-			if (iLines > this.lines) {
+			if (this.symbolsLastLine && iSymbols !== this.symbolsLastLine) {
+        // Revert to prev symbol because we return leftmost before position
+        // The case the position has column greater than really exists but on existed line
+        // ASSUME: only the case when previous symbol is newline
+        this.lines = iLines - 1;
         this.symbolsLastLine = prevISymbols;
-      } else { // iLines <= this.lines
-        
-        if (iSymbols >= this.symbolsLastLine)
+        return false;
       }
+      return true; 
 		}
-		return;
 	}
 	throw Error('Can\'t determine necassary info due to lack information')
 }
@@ -149,20 +152,20 @@ RopePosition.prototype.isEqual = function(position) {
 		ok = this.count === position.count;
 
 	if (this._isDefinedLinesColumn && position._isDefinedLinesColumn())
-		ok = ok && (this.lines === position.lines) && (this.symbolsLastLine === position.symbolsLastLine)
+    ok = ok && (this.lines === position.lines) && (this.symbolsLastLine === position.symbolsLastLine)
 
 	return ok;
 }
 
-/*RopePosition.prototype.isLessOrEqual = function(position) {
+RopePosition.prototype.isLessOrEqual = function(position) {
 	return this.isLess(position) || this.isEqual(position);
-}*/
+}
 
 RopePosition.prototype.split = function(positionSecond) {
 	var left = RopePosition(), right = RopePosition();
 	if (this._isDefinedCount() && positionSecond._isDefinedCount()) {
 		left.count = positionSecond.count;
-		right.count = this.count - positionSecond.count;
+    right.count = this.count - positionSecond.count;
 	}
 
 	if (this._isDefinedLinesColumn() && positionSecond._isDefinedLinesColumn()) {
@@ -383,12 +386,13 @@ RopeNode.prototype.getDot = function(prevPath, direction) {
 }
 
 /**
- * Return rightmost RopeNode of indexOrPosition. If the position is upper bounds - return the rightmost RopeNode and the position of rightmost symbol of that node.
  * @param {int|RopePosition} indexOrPosition The absolute symbol index as if rope contains one big string OR The absolute position of symbol the return node must contain. This position may not define index of symbol because the search only use lines/column info
- * @return {{node: RopeNode, position: RopePosition}} Always return RopePosition with full info
+ * @param {bool} before If position not found, if 'true' return the position of symbol before indexOrPosition, if 'else' - return the position after the indexOrPosition. If no after position (in the end of text), return position before in any case.
+ * @return {{node: RopeNode, position: RopePosition, found: bool}} Return rightmost RopeNode of indexOrPosition. If the position is upper bounds - return the rightmost RopeNode and the position of rightmost symbol of that node. Always return RopePosition with full info.
  */
 
-RopeNode.prototype.getNode = function(indexOrPosition) {
+RopeNode.prototype.getNode = function(indexOrPosition, before) {
+  before = isDefined(before)? before: true;
 	var position = RopePosition(indexOrPosition);
 	var curNode = this;
 	
@@ -402,8 +406,27 @@ RopeNode.prototype.getNode = function(indexOrPosition) {
 		}
 	}
 
-	position.determineInfo(curNode);
-	return {'node': curNode, 'position': position}
+	var found = true;
+	if (curNode.length.isLess(position)) {
+    found = false;
+    position = curNode.length;
+  } else {
+    found = position.determineInfo(curNode);  
+  }
+  // ASSUME: the position is already set to leftmost symbol before argument position
+  // This happens not always! The case: the newline on the start of the leaf, and we search
+  //  for the column in previous line (in previous leaf) but exceeded column, so we should
+  //  return the last symbol from previous leaf
+  
+  if (!found && !before) { // return symbol after
+    if (position.count < curNode.length.count) {
+      
+    } else {
+      curNode = curNode.next();
+      position = RopePosition(1, 0);
+    }
+  }
+	return {'node': curNode, 'position': position, 'found': found}
 }
 
 
