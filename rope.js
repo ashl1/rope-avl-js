@@ -5,8 +5,6 @@
  *       (Apache v2.0 license)
  */
 
-define(function(require){
-
 var RopeSPLIT_LENGTH = 15;
 var RopeJOIN_LENGTH = 10;
 
@@ -17,9 +15,22 @@ function isDefined(arg) {
 }
 
 /*
- * This structure used as (line, column) for external usage, and (lines, symbolsLastLine) in internal
- * usage for the Rope. The meaning of symbolsLastLine depend on circumstances it's used.
+ * This structure used for the Rope as:
+ *  - (line, column) determined the symbol for external usage (info about position of symbol in the text)
+ *     count - the number of symbol position started from 0
+ *     line - the number of line started from 0
+ *     column - the number of column, where symbol located in, started from 0 (the newline character caculated as last symbol)
+ *  - (count, lines, symbolsLastLine) in internal usage (info about string)
+ *     count - the number of all symbols in the string
+ *     lines - the number of lines in the string (empty last line not included). It couldn't be less than 1
+ *     symbolsLastLine - the number of symbols located in last line (include newline character)
  */
+
+/*
+Position.count = Range.count - 1
+Position.line = Range.symbolsLastLine == 0? Range.line - 1: Range.line;
+Position.column = Range.symbolsLastLine == 0? determineLastLineCount(): Range.symbolsLastLine - 1;
+*/
 
 RopePosition = function () {
   if (!(this instanceof RopePosition)) return new RopePosition(arguments);
@@ -40,7 +51,6 @@ RopePosition = function () {
 		return this._fromFull(arguments[0], arguments[1], arguments[2]);
 }
 
-
 RopePosition.prototype.concat = function (position) {
 	if (typeof position == 'undefined')
 		return this;
@@ -51,32 +61,48 @@ RopePosition.prototype.concat = function (position) {
 		)
 }
 
+/*RopePosition.prototype.convertToRange = function(){
+	this.count -= 1;
+	if (this.symbolsLastLine == 0) {
+		this.line = Math.max(this.line - 1);
+		this.symbolsLastLine = determineLastLineCount();
+	} else {
+		this.symbolsLastLine -= 1;
+	}
+}*/
+
 RopePosition.prototype.determineInfo = function(ropeLeaf) {
 	if (this._isDefinedCount()){
 		if (!this._isDefinedLinesColumn()) {
-
 			this.lines = 0;
 			this.symbolsLastLine = 0;
 
+			var newline = false;
 			for (var i = 0; i < this.count; i+=1) {
-				if (ropeLeaf.value[i] == '\n') {
+				if (newline) {
 					this.lines += 1;
 					this.symbolsLastLine = 0;
+					newline = false;
 				} else
 					this.symbolsLastLine += 1;
+				if (ropeLeaf.value[i] == '\n')
+					newline = true;
 			}
 			return;
 		}
 	} else { // count is not defined
 		if (this._isDefinedLinesColumn()) {
 			this.count = 0;
-
-			for (var iLines = 1, iSymbols = 0; (iLines < this.lines) || ((iLines === this.lines) && (iSymbols < this.symbolsLastLine)); this.count += 1) {
-				if (ropeLeaf.value[this.count] == '\n') {
+			var newline = false;
+			for (var iLines = 0, iSymbols = 0; (iLines < this.lines) || ((iLines === this.lines) && (iSymbols <= this.symbolsLastLine)); this.count += 1) {
+				if (newline) {
 					iLines += 1;
 					iSymbols = 0;
+					newline = false;
 				} else
 					iSymbols += 1;
+				if (ropeLeaf.value[i] == '\n')
+					newline = true;
 			}
 		}
 		return;
@@ -122,13 +148,21 @@ RopePosition.prototype._isDefinedLinesColumn = function(){
 }
 
 RopePosition.prototype.isLess = function(position) {
+	// this is Range, position is Position
+
 	if (this._isDefinedCount() && position._isDefinedCount()) {
-		return this.count < position.count;
+		return this.count < position.count - 1;
 	}
+
+	Position.line = Range.symbolsLastLine == 0? Range.line - 1: Range.line;
+	Position.column = Range.symbolsLastLine == 0? determineLastLineCount(): Range.symbolsLastLine - 1;
 
 	if (this._isDefinedLinesColumn() && position._isDefinedLinesColumn()) {
 		return this.lines < position.lines? true:
-						 this.lines == position.lines? this.symbolsLastLine < position.symbolsLastLine: false;
+			   this.lines == position.lines? 
+			   	this.symbolsLastLine < position.symbolsLastLine:
+			    
+				 		 false;
 	}
 
 	throw Error("RopePosition's don't contain the appropriate info")
@@ -601,7 +635,7 @@ Rope.prototype._getIndexFromPosition = function(indexOrPosition, defaultValue) {
 
 Rope.prototype._isPositionInBounds = function(position) {
   if (position instanceof RopePosition)
-    return  (position.lines <= this.rope.length.lines) && (position.symbolsLastLine <= this.getLineLength(position.lines))
+    return  (position.lines <= this.rope.length.lines) && (position.symbolsLastLine < this.getLineLength(position.lines))
   // assume position is index [number]
   return position >= 0 && position <= this.rope.length.count;
 }
@@ -620,7 +654,7 @@ Rope.prototype.getLineLength = function (lineIndex) {
     endIndex = this.rope.length.count;
   else
     endIndex = this._getIndexFromPosition(RopePosition(lineIndex + 1, 0)) - 1;
-  return endIndex - startIndex + 1;
+  return endIndex - startIndex;
 }
 
 Rope.prototype.getLinesCount = function () {
@@ -663,7 +697,7 @@ Rope.prototype.substr = function(startPosition, endPosition) {
   else { // has first symbols
     if (!this._isPositionInBounds(endPosition))
       endPosition = endPosition instanceof RopePosition?
-        RopePosition(endPosition.lines, this.getLineLength(endPosition.lines) - 1):
+        RopePosition(endPosition.lines, this.getLineLength(endPosition.lines)):
         this.rope.length.count - 1;
   }
   
@@ -701,10 +735,3 @@ Rope.prototype.substr = function(startPosition, endPosition) {
 Rope.prototype.getDot = function() {
 	return this.rope.getDot() 
 }
-
-return {
-	Rope: Rope,
-	RopePosition: RopePosition
-}
-
-});
