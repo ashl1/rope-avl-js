@@ -93,16 +93,12 @@ RopePosition.prototype.determineInfo = function(ropeLeaf) {
 	} else { // count is not defined
 		if (this._isDefinedLinesColumn()) {
 			this.count = 0;
-			var newline = false;
-			for (var iLines = 0, iSymbols = 0; (iLines < this.lines) || ((iLines === this.lines) && (iSymbols <= this.symbolsLastLine)); this.count += 1) {
-				if (newline) {
+			for (var iLines = 1, iSymbols = 0; (iLines < this.lines) || ((iLines === this.lines) && (iSymbols <= this.symbolsLastLine)); this.count += 1) {
+				if (ropeLeaf.value[this.count] == '\n') {
 					iLines += 1;
 					iSymbols = 0;
-					newline = false;
 				} else
 					iSymbols += 1;
-				if (ropeLeaf.value[i] == '\n')
-					newline = true;
 			}
 		}
 		return;
@@ -154,15 +150,9 @@ RopePosition.prototype.isLess = function(position) {
 		return this.count < position.count - 1;
 	}
 
-	Position.line = Range.symbolsLastLine == 0? Range.line - 1: Range.line;
-	Position.column = Range.symbolsLastLine == 0? determineLastLineCount(): Range.symbolsLastLine - 1;
-
 	if (this._isDefinedLinesColumn() && position._isDefinedLinesColumn()) {
 		return this.lines < position.lines? true:
-			   this.lines == position.lines? 
-			   	this.symbolsLastLine < position.symbolsLastLine:
-			    
-				 		 false;
+			   this.lines == position.lines? this.symbolsLastLine < position.symbolsLastLine: false;
 	}
 
 	throw Error("RopePosition's don't contain the appropriate info")
@@ -705,10 +695,10 @@ Rope.prototype.substr = function(startPosition, endPosition) {
 	var endNode = this.rope.getNode(endPosition);
 
 	if (startNode.node === endNode.node)
-		return startNode.node.value.substring(startNode.position.count, endNode.position.count + 1)
+		return startNode.node.value.substring(startNode.position.count - 1, endNode.position.count)
 	
 	var str = new Array();
-	str.push(startNode.node.value.substring(startNode.position.count));
+	str.push(startNode.node.value.substring(startNode.position.count - 1));
 
 	var prevNode = startNode.node;
 	var curNode = startNode.node.parent;
