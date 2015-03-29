@@ -90,7 +90,7 @@ RopePosition.prototype.determineInfo = function(ropeLeaf) {
 			this.lines = 0;
 			this.symbolsLastLine = 0;
 
-			var newline = false;
+			var newline = true;
 			for (var i = 0; i < this.count; i+=1) {
 				if (newline) {
 					this.lines += 1;
@@ -424,6 +424,9 @@ RopeNode.prototype.getNode = function(indexOrPosition) {
 		if (curNode.left && position.isLess(curNode.left.length))
 			curNode = curNode.left;
 		else {
+			if (!curNode.right)
+				console.log(!curNode.right)
+			// if !curNode.right
 			position = position.split(curNode.left.length)[1];
 			curNode = curNode.right;
 		}
@@ -484,7 +487,7 @@ RopeNode.prototype.recalculate = function() {
 			if (this.right)
 				this.length = this.left.length.concat(this.right.length)
 			else // only left
-				this.length = left.length
+				this.length = this.left.length
 		} else // only right
 			this.length = this.right.length;
 	} else { // is leaf
@@ -605,12 +608,14 @@ RopeNode.prototype.unsetLeft = function() {
 	if (!this.left) return;
 	this.left.parent = null;
 	this.left = null;
+	this.recalculate();
 }
 
 RopeNode.prototype.unsetRight = function() {
 	if (!this.right) return;
 	this.right.parent = null;
 	this.right = null;
+	this.recalculate();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -623,6 +628,10 @@ Rope = function(string) {
 	this.rope = new RopeNode(string)
 }
 
+/*
+ * @return {number} The character index started from 0 (not as count, started from 1)
+ */
+
 Rope.prototype._getIndexFromPosition = function(indexOrPosition, defaultValue) {
 	if (!isDefined(indexOrPosition))
 		return defaultValue;
@@ -631,7 +640,7 @@ Rope.prototype._getIndexFromPosition = function(indexOrPosition, defaultValue) {
 		// this is index
 		return indexOrPosition;
 	var target = this.rope.getNode(indexOrPosition);
-	return target.node.getAbsolutePosition(target.position).count;
+	return target.node.getAbsolutePosition(target.position).count - 1;
 }
 
 // ASSUME: position has 'line' and 'symbolsLastLine' (column) properties
@@ -654,7 +663,7 @@ Rope.prototype.getLineLength = function (lineIndex) {
   var startIndex = this._getIndexFromPosition(RopePosition(lineIndex, 0));
   var endIndex;
   if (lineIndex == this.rope.length.lines)
-    endIndex = this.rope.length.count + 1;
+    endIndex = this.rope.length.count;
   else
     endIndex = this._getIndexFromPosition(RopePosition(lineIndex + 1, 0)) - 1;
   return endIndex - startIndex;
