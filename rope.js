@@ -374,8 +374,14 @@ RopeNode.prototype.checkPositions = function() {
 		if (!this.length.isEqual(RopePosition(this.value)))
 			throw Error("The length is wrong")
 	} else { // not a leaf
-		// FIXME: !!!
+		var newNode = RopeNode()
+		newNode.setLeft(this.left)
+		newNode.setRight(this.right)
+		newNode.recalculate()
+		if (!newNode.length.isEqual(this.length))
+			throw Error("The position is wrong")
 	}
+	return true;
 }
 
 RopeNode.prototype.getAbsolutePosition = function(relativePosition) {
