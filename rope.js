@@ -5,6 +5,19 @@
  *       (Apache v2.0 license)
  */
 
+(function(factory, root) {
+    if (typeof define == "function" && define.amd) {
+        // AMD. Register as an anonymous module.
+        define(factory);
+    } else if (typeof module != "undefined" && typeof exports == "object") {
+        // Node/CommonJS style
+        module.exports = factory();
+    } else {
+        // No AMD or CommonJS support so we place Rangy in (probably) the global variable
+        root.rangy = factory();
+    }
+})(function() {
+  
 var RopeSPLIT_LENGTH = 15;
 var RopeJOIN_LENGTH = 10;
 
@@ -641,7 +654,7 @@ Rope.prototype.getLineLength = function (lineIndex) {
   var startIndex = this._getIndexFromPosition(RopePosition(lineIndex, 0));
   var endIndex;
   if (lineIndex == this.rope.length.lines)
-    endIndex = this.rope.length.count;
+    endIndex = this.rope.length.count + 1;
   else
     endIndex = this._getIndexFromPosition(RopePosition(lineIndex + 1, 0)) - 1;
   return endIndex - startIndex;
@@ -678,7 +691,7 @@ Rope.prototype.remove = function(startPosition, endPosition) {
 
 Rope.prototype.substr = function(startPosition, endPosition) {
 	startPosition = isDefined(startPosition)? startPosition: 0;
-	endPosition = isDefined(endPosition)? endPosition: this.rope.length.count - 1;
+	endPosition = isDefined(endPosition)? endPosition: this.rope.length.count;
 
   // ASSUME: startPosition and endPosition are on the same line and endPosition >= startPosition.
   //   In other case, the logic of determine if position not in bounds will be wrong
@@ -687,8 +700,8 @@ Rope.prototype.substr = function(startPosition, endPosition) {
   else { // has first symbols
     if (!this._isPositionInBounds(endPosition))
       endPosition = endPosition instanceof RopePosition?
-        RopePosition(endPosition.lines, this.getLineLength(endPosition.lines)):
-        this.rope.length.count - 1;
+        RopePosition(endPosition.lines, this.getLineLength(endPosition.lines) - 1):
+        this.rope.length.count;
   }
   
 	var startNode = this.rope.getNode(startPosition);
@@ -725,3 +738,10 @@ Rope.prototype.substr = function(startPosition, endPosition) {
 Rope.prototype.getDot = function() {
 	return this.rope.getDot() 
 }
+
+return {
+  Rope: Rope,
+  RopePosition: RopePosition,
+}
+
+}, this);
