@@ -685,7 +685,7 @@ Rope.prototype.insert = function(startPosition, stringOrRope) {
 	var startIndex = this._getIndexFromPosition(startPosition);
 	// FIXME: determine can we add to the only one leaf or to neighbour instead of create new leaf
 	var split = this.rope.split(startIndex);
-	this.rope = stringOrRope.append(split[1]);
+	this.rope = RopeNode(stringOrRope).append(split[1]);
 	if (split[0])
 		this.rope = split[0].append(this.rope)
 }
