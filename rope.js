@@ -237,8 +237,8 @@ function adjust() {
   } else {
     if (this.length.count < RopeJOIN_LENGTH) {
       this.value = this.left.toString() + this.right.toString();
-      delete this.left;
-      delete this.right;
+      this.unsetLeft();
+      this.unsetRight();
     }
   }
   this.recalculate();
@@ -274,8 +274,10 @@ RopeNode.prototype.append = function(rope) {
 	newNode.recalculate();
 	newNode.balance(newNode)
 
-	while (newNode.parent)
+	while (newNode.parent) {
 		newNode = newNode.parent;
+		newNode.recalculate();
+	}
 	return newNode;
 }
 
@@ -299,23 +301,15 @@ RopeNode.prototype.balance = function(node) {
     // Rotate tree rooted at this node if it is not AVL-tree balanced
     if (lh - rh > 1) {
       if (node.left.right && (!node.left.left ||
-          node.left.left.height < node.left.right.height)) {
+          node.left.left.height < node.left.right.height))
         this.leftRotate(node.left);
-      	node.left.recalculate();
-      	node.left.parent.recalculate()
-      }
       this.rightRotate(node);
     } else if (rh - lh > 1) {
       if (node.right.left && (!node.right.right ||
-          node.right.right.height < node.right.left.height)) {
+          node.right.right.height < node.right.left.height))
         this.rightRotate(node.right);
-      node.right.recalculate()
-      node.right.parent.recalculate();
-      }
       this.leftRotate(node);
     }
-
-    node.recalculate();
 
     // Traverse up tree and balance parent
     return node.parent;
@@ -375,8 +369,8 @@ RopeNode.prototype.checkPositions = function() {
 			throw Error("The length is wrong")
 	} else { // not a leaf
 		var newNode = RopeNode()
-		newNode.setLeft(this.left)
-		newNode.setRight(this.right)
+		newNode.left = this.left
+		newNode.right = this.right
 		newNode.recalculate()
 		if (!newNode.length.isEqual(this.length))
 			throw Error("The position is wrong")
@@ -465,21 +459,25 @@ RopeNode.prototype.isLeftChild = function() {
  * @private
  */
 RopeNode.prototype.leftRotate = function(node) {
+  var oldNodeRight = node.right;
+
   // Re-assign parent-child references for the parent of the node being removed
 	if (node.parent) {
 		if (node.isLeftChild())
-			node.parent.setLeft(node.right);
+			node.parent.setLeft(oldNodeRight);
 		else // is right child
-			node.parent.setRight(node.right);
+			node.parent.setRight(oldNodeRight);
 	} else {
-		node.right.parent = null;
+		oldNodeRight.parent = null;
 	}
 
 	// Re-assign parent-child references for the child of the node being removed
-	var temp = node.right;
-	node.right = node.right.left;
-	if (node.right != null) node.right.parent = node;
-	temp.setLeft(node);
+  node.setRight(oldNodeRight.left);
+	oldNodeRight.setLeft(node);
+  
+	node.recalculate();
+	oldNodeRight.recalculate();
+	if (oldNodeRight.parent) oldNodeRight.parent.recalculate();
 };
 
 RopeNode.prototype.recalculate = function() {
@@ -508,21 +506,25 @@ RopeNode.prototype.recalculate = function() {
  * @private
  */
 RopeNode.prototype.rightRotate = function(node) {
+  var oldNodeLeft = node.left;
+
   // Re-assign parent-child references for the parent of the node being removed
 	if (node.parent) {
   	if (node.isLeftChild())
-    	node.parent.setLeft(node.left);
+    	node.parent.setLeft(oldNodeLeft);
   	else // is right child
-    	node.parent.setRight(node.left);
+    	node.parent.setRight(oldNodeLeft);
 	} else {
-		node.left.parent = null;
+		oldNodeLeft.parent = null;
 	}
   
 	// Re-assign parent-child references for the child of the node being removed
-	var temp = node.left;
-	node.left = node.left.right;
-	if (node.left != null) node.left.parent = node;
-	temp.setRight(node);
+	node.setLeft(oldNodeLeft.right);
+	oldNodeLeft.setRight(node);
+	
+	node.recalculate();
+	oldNodeLeft.recalculate();
+	if (oldNodeLeft.parent) oldNodeLeft.parent.recalculate();
 };
 
 RopeNode.prototype.setLeft = function(ropeNode) {
