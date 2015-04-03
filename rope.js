@@ -19,8 +19,8 @@
     }
 })(function() {
   
-var RopeSPLIT_LENGTH = 15;
-var RopeJOIN_LENGTH = 10;
+var RopeSPLIT_LENGTH = 150;
+var RopeJOIN_LENGTH = 100;
 
 function isDefined(arg) {
 	if (typeof arg != 'undefined')
@@ -697,7 +697,7 @@ Rope.prototype._getLexerState = function(position) {
   var lexerState = node.lexerState;
   node = node.node;
 
-  return this.lexer.getLastState(node.value.substring(0, position.count), lexerState);
+  return this.lexer.getLastState(node.value.substring(0, position.count - 1), lexerState);
 }
 
 

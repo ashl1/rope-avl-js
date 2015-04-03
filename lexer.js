@@ -540,7 +540,7 @@ Lexer.prototype.getLexems = function(str, state) {
       newState = this.tables.delta[state][this._getEdgeIndexFromSymbol(str[i])]
       if (newState == this.tables.errorState) {
         lexems.push({
-          str: str.substring  (lexemStartIndex, i),
+          string: str.substring  (lexemStartIndex, i),
           domain: this.tables.finalStatesToDomain[state],
         })
         lexemStartIndex = i;
@@ -551,7 +551,7 @@ Lexer.prototype.getLexems = function(str, state) {
   }
   if (lexemStartIndex != str.length)
     lexems.push({
-      str: str.substr(lexemStartIndex),
+      string: str.substr(lexemStartIndex),
       domain: 0,
     })
   return lexems;
@@ -579,7 +579,7 @@ LexerTransitionTable = function(lexer, stringOrTable){
 LexerTransitionTable.prototype.concat = function(table) {
   var resTable = new Array(this.table.length);
   for (var i = 0; i < this.table.length; i += 1) {
-    resTable[i] = table[this.table[i]];
+    resTable[i] = table.table[this.table[i]];
   }
   return LexerTransitionTable(this.lexer, resTable)
 }
