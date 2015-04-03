@@ -7,9 +7,17 @@
         module.exports = factory();
     } else {
         // No AMD or CommonJS support so we place Rangy in (probably) the global variable
-        root.rangy = factory();
+      var obj = factory();
+      root.Lexer = obj.Lexer;
+      root.LexerTransitionTable = obj.LexerTransitionTable;
     }
 })(function() {
+  function isDefined(arg) {
+    if (typeof arg != 'undefined')
+      return true;
+    return false;
+  }
+  
   Lexer = function(){
   if (!(this instanceof Lexer)) return new Lexer();
   
@@ -504,7 +512,7 @@ Lexer.prototype._getEdgeIndexFromSymbol = function(symbol){
   return (symbols.length - 1)*2 + 2;
 }
 
-Lexer.prototype.getTransitionTable = function(str){
+Lexer.prototype._getTransitionTable = function(str){
   var transitionTable = new Array(this.tables.delta.length);
   for (var i = 0; i < transitionTable.length; i += 1)
     transitionTable[i] = i;
@@ -549,8 +557,37 @@ Lexer.prototype.getLexems = function(str, state) {
   return lexems;
 }
 
-return Lexer;
+Lexer.prototype.getLastState = function(string, initialState) {
+  for (var i = 0; i < string.length; i += 1) {
+    initialState = this.tables.delta[initialState][this._getEdgeIndexFromSymbol(string[i])]
+  }
+  return initialState;
+}
 
+LexerTransitionTable = function(lexer, stringOrTable){
+  if (!(this instanceof LexerTransitionTable)) return new LexerTransitionTable(lexer, stringOrTable);
+  
+  this.lexer = lexer;
+  if (isDefined(stringOrTable)) {
+    if (typeof(stringOrTable) == 'string')
+      this.table = lexer._getTransitionTable(stringOrTable)
+    else
+      this.table = stringOrTable;
+  }
+}
+
+LexerTransitionTable.prototype.concat = function(table) {
+  var resTable = new Array(this.table.length);
+  for (var i = 0; i < this.table.length; i += 1) {
+    resTable[i] = table[this.table[i]];
+  }
+  return LexerTransitionTable(this.lexer, resTable)
+}
+
+return {
+  'Lexer': Lexer,
+  'LexerTransitionTable': LexerTransitionTable,
+  }
 }, this);
 
 /*

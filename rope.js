@@ -223,10 +223,11 @@ RopePosition.prototype.split = function(positionSecond) {
  * 
  */
 
-RopeNode = function(string) {
+RopeNode = function(string, lexer) {
 	// allow usage without `new`
-  if (!(this instanceof RopeNode)) return new RopeNode(string);
+  if (!(this instanceof RopeNode)) return new RopeNode(string, lexer);
 
+  this.lexer = lexer;
   this.height = 1;
   if (string) {
 	  this.value = string;
@@ -246,8 +247,8 @@ function adjust() {
   if (this.isLeaf()) {
     if (this.length.count > RopeSPLIT_LENGTH) {
       var divide = Math.floor(this.length.count / 2);
-      this.setLeft(new RopeNode(this.value.substring(0, divide)));
-      this.setRight(new RopeNode(this.value.substring(divide)));
+      this.setLeft(new RopeNode(this.value.substring(0, divide), this.lexer));
+      this.setRight(new RopeNode(this.value.substring(divide), this.lexer));
       delete this.value;
     }
   } else {
@@ -279,7 +280,7 @@ RopeNode.prototype.append = function(rope) {
 			rightSubtree = rightSubtree.left;
 	}
 
-	var newNode = new RopeNode();
+	var newNode = new RopeNode(null, this.lexer);
 	if (isLeftHigherOrEqual) {
 		if (leftSubtree.parent) leftSubtree.parent.setRight(newNode);
 	} else { // right is higher
@@ -384,7 +385,7 @@ RopeNode.prototype.checkPositions = function() {
 		if (!this.length.isEqual(RopePosition(this.value)))
 			throw Error("The length is wrong")
 	} else { // not a leaf
-		var newNode = RopeNode()
+		var newNode = RopeNode(null, this.lexer)
 		newNode.left = this.left
 		newNode.right = this.right
 		newNode.recalculate()
@@ -434,6 +435,7 @@ RopeNode.prototype.getDot = function(prevPath, direction) {
 RopeNode.prototype.getNode = function(indexOrPosition) {
 	var position = RopePosition(indexOrPosition);
 	var curNode = this;
+  var lexerState = 0;
 	
 	// find the node to start from
 	while (!curNode.isLeaf()) {
@@ -442,14 +444,14 @@ RopeNode.prototype.getNode = function(indexOrPosition) {
 		else {
 			if (!curNode.right)
 				console.log(!curNode.right)
-			// if !curNode.right
 			position = position.split(curNode.left.length)[1];
+      lexerState = curNode.left.transitionTable.table[lexerState];
 			curNode = curNode.right;
 		}
 	}
 
 	position.determineInfo(curNode);
-	return {'node': curNode, 'position': position}
+	return {'node': curNode, 'position': position, 'lexerState': lexerState}
 }
 
 
@@ -501,17 +503,23 @@ RopeNode.prototype.recalculate = function() {
 	var rh = this.right ? this.right.height : 0;
 	this.height = Math.max(lh, rh) + 1;
 
-
 	if (!this.isLeaf()) {
 		if (this.left) {
-			if (this.right)
+			if (this.right) {
 				this.length = this.left.length.concat(this.right.length)
-			else // only left
+        this.transitionTable = this.left.transitionTable.concat(this.right.transitionTable);
+      }
+			else { // only left
 				this.length = this.left.length
-		} else // only right
+				this.transitionTable = this.left.transitionTable;
+      }
+		} else { // only right
 			this.length = this.right.length;
+      this.transitionTable = this.right.transitionTable;
+    }
 	} else { // is leaf
 		this.length = RopePosition(this.value)
+    this.transitionTable = LexerTransitionTable(this.lexer, this.value)
 	}
 }
 
@@ -565,9 +573,9 @@ RopeNode.prototype.split = function(indexSecond) {
 
 	if (this.isLeaf()) {
 		left = this.value.substr(0, indexSecond);
-		left = left == ''? null: RopeNode(left);
+		left = left == ''? null: RopeNode(left, this.lexer);
 		right = this.value.substr(indexSecond);
-		right = right == ''? null: RopeNode(right);
+		right = right == ''? null: RopeNode(right, this.lexer);
 		return [left, right]
 	}
 
@@ -649,17 +657,10 @@ RopeNode.prototype.unsetRight = function() {
 Rope = function(string, lexer) {
   if (!(this instanceof Rope)) return new Rope(string, lexer);
 
-   if (isDefined(lexer))
+  if (isDefined(lexer))
     this.lexer = lexer;
 
-	this.rope = new RopeNode(string)
-  var self = this;
-  
-  // set transitionTable
-  this._traverseLeafs(this.rope.getNode(RopePosition(1)).node, this.rope.getNode(RopePosition(this.rope.length)).node
-  , function (leaf) {
-    leaf.transitionTable = self.lexer.getTransitionTable(leaf.value);
-  })
+	this.rope = new RopeNode(string, lexer)
 }
 
 /*
@@ -686,6 +687,20 @@ Rope.prototype._isPositionInBounds = function(position) {
   return position >= 0 && position <= this.rope.length.count;
 }
 
+Rope.prototype.getLexems = function(startPosition, endPosition) {
+  return this.lexer.getLexems(this.substr(startPosition, endPosition), this._getLexerState(startPosition));
+}
+
+Rope.prototype._getLexerState = function(position) {
+  var node = this.rope.getNode(position);
+  var position = node.position;
+  var lexerState = node.lexerState;
+  node = node.node;
+
+  return this.lexer.getLastState(node.value.substring(0, position.count), lexerState);
+}
+
+
 /**
  * @return {int} Count of the symbols in the line (without last newline)
  */
@@ -711,7 +726,7 @@ Rope.prototype.insert = function(startPosition, stringOrRope) {
 	var startIndex = this._getIndexFromPosition(startPosition);
 	// FIXME: determine can we add to the only one leaf or to neighbour instead of create new leaf
 	var split = this.rope.split(startIndex);
-	this.rope = RopeNode(stringOrRope).append(split[1]);
+	this.rope = RopeNode(stringOrRope, this.lexer).append(split[1]);
 	if (split[0])
 		this.rope = split[0].append(this.rope)
 }
@@ -728,7 +743,7 @@ Rope.prototype.remove = function(startPosition, endPosition) {
 		if (split2[1])
 			this.rope = split2[1]
 		else
-			this.rope = RopeNode("")
+			this.rope = RopeNode("", this.lexer)
 	}
 }
 
@@ -772,7 +787,18 @@ Rope.prototype.substr = function(startPosition, endPosition) {
  */
 
 Rope.prototype._traverseLeafs = function(startNode, endNode, func) {
-  var prevNode = startNode;
+  this._traverseNodes(startNode, endNode, function(node){
+    if (node.isLeaf)
+      func(node)
+  });
+}
+
+/*
+ * Traverse nodes from the deepest levels to highest, from left to right in level
+ */
+
+Rope.prototype._traverseNodes = function(startNode, endNode, func) {
+    var prevNode = startNode;
   var curNode = startNode;
   var temp;
 
@@ -780,13 +806,13 @@ Rope.prototype._traverseLeafs = function(startNode, endNode, func) {
     if (curNode.left && prevNode !== curNode.left && prevNode !== curNode.right)
       curNode = curNode.left;
     else {
-      if (curNode.isLeaf()) {
-        func(curNode);
-      }
       temp = curNode;
-      curNode = curNode.right && prevNode != curNode.right?
-                curNode.right:
-                curNode.parent;
+      if (curNode.right && prevNode != curNode.right)
+        curNode = curNode.right;
+      else {
+        func(curNode);
+        curNode = curNode.parent;
+      }
       prevNode = temp;
     }
   }
