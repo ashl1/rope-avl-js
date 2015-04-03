@@ -1,4 +1,16 @@
-Lexer = function(){
+(function(factory, root) {
+    if (typeof define == "function" && define.amd) {
+        // AMD. Register as an anonymous module.
+        define(factory);
+    } else if (typeof module != "undefined" && typeof exports == "object") {
+        // Node/CommonJS style
+        module.exports = factory();
+    } else {
+        // No AMD or CommonJS support so we place Rangy in (probably) the global variable
+        root.rangy = factory();
+    }
+})(function() {
+  Lexer = function(){
   if (!(this instanceof Lexer)) return new Lexer();
   
   this.tables = {
@@ -536,6 +548,10 @@ Lexer.prototype.getLexems = function(str, state) {
     })
   return lexems;
 }
+
+return Lexer;
+
+}, this);
 
 /*
     finalStatesToLexem: [0, 107, 106, 94, 107, 100, 93, 107, 88, 89, 98, 97, 85, 96, 92, 99, 51, 50, 86, 82, 101, 87, 102, 105, 48, 48, 48, 90, 91, 103, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 83, 104, 84, 95, 0, 81, 0, 59, 0, 67, 84, 76, 68, 0, 0, 65, 73, 63, 74, 64, 75, 0, 54, 0, 2, 66, 55, 51, 0, 51, 51, 0, 51, 51, 50, 50, 50, 50, 50, 91, 83, 90, 72, 78, 80, 79, 71, 48, 0, 69, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 10, 48, 48, 48, 48, 48, 48, 18, 48, 48, 48, 48, 48, 48, 48, 48, 0, 48, 48, 48, 48, 48, 48, 70, 77, 59, 0, 0, 0, 0, 0, 0, 52, 0, 0, 0, 0, 60, 54, 0, 54, 54, 54, 54, 0, 0, 2, 54, 0, 55, 55, 55, 55, 0, 53, 51, 51, 51, 51, 0, 49, 0, 51, 50, 50, 50, 50, 0, 50, 62, 61, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 16, 48, 48, 20, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0, 48, 48, 48, 48, 48, 0, 59, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 1, 54, 54, 54, 54, 54, 0, 55, 53, 53, 53, 53, 53, 0, 51, 0, 0, 49, 49,

@@ -8,13 +8,14 @@
 (function(factory, root) {
     if (typeof define == "function" && define.amd) {
         // AMD. Register as an anonymous module.
-        define(factory);
+        define(['lexer'], factory(lexer));
     } else if (typeof module != "undefined" && typeof exports == "object") {
         // Node/CommonJS style
-        module.exports = factory();
+        var lexer = module.import('lexer')
+        module.exports = factory(lexer);
     } else {
         // No AMD or CommonJS support so we place Rangy in (probably) the global variable
-        root.rangy = factory();
+        root.rope = factory(root.lexer);
     }
 })(function() {
   
@@ -757,7 +758,8 @@ Rope.prototype.substr = function(startPosition, endPosition) {
 
   
   this._traverseLeafs(startNode.node, endNode.node, function(leaf){
-    str.push(leaf.value);
+    if (leaf !== startNode.node && leaf !== endNode.node)
+      str.push(leaf.value);
   })
 	str.push(endNode.node.value.substring(0, endNode.position.count))
 
