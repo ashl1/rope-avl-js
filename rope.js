@@ -682,7 +682,7 @@ Rope.prototype._getIndexFromPosition = function(indexOrPosition, defaultValue) {
 
 Rope.prototype._isPositionInBounds = function(position) {
   if (position instanceof RopePosition)
-    return  (position.lines <= this.rope.length.lines) && (position.symbolsLastLine < this.getLineLength(position.lines))
+    return  (position.lines <= this.rope.length.lines) && (position.symbolsLastLine < this.getLineLength(position.lines) + 1)
   // assume position is index [number]
   return position >= 0 && position <= this.rope.length.count;
 }
@@ -747,6 +747,10 @@ Rope.prototype.remove = function(startPosition, endPosition) {
 	}
 }
 
+/*
+ * @return The substring. If endPosition has column > line length, include the newline character to the extracted substring
+ */
+
 Rope.prototype.substr = function(startPosition, endPosition) {
 	startPosition = isDefined(startPosition)? startPosition: 0;
 	endPosition = isDefined(endPosition)? endPosition: this.rope.length.count;
@@ -758,7 +762,7 @@ Rope.prototype.substr = function(startPosition, endPosition) {
   else { // has first symbols
     if (!this._isPositionInBounds(endPosition))
       endPosition = endPosition instanceof RopePosition?
-        RopePosition(endPosition.lines, this.getLineLength(endPosition.lines) - 1):
+        RopePosition(endPosition.lines, this.getLineLength(endPosition.lines)):
         this.rope.length.count;
   }
   

@@ -540,7 +540,7 @@ Lexer.prototype.getLexems = function(str, state) {
       newState = this.tables.delta[state][this._getEdgeIndexFromSymbol(str[i])]
       if (newState == this.tables.errorState) {
         lexems.push({
-          string: str.substring  (lexemStartIndex, i),
+          string: str.substring(lexemStartIndex, i),
           domain: this.tables.finalStatesToDomain[state],
         })
         lexemStartIndex = i;
@@ -549,17 +549,29 @@ Lexer.prototype.getLexems = function(str, state) {
         state = newState;
     } while (state === 0);
   }
-  if (lexemStartIndex != str.length)
-    lexems.push({
-      string: str.substr(lexemStartIndex),
-      domain: 0,
-    })
+  if (str.length) {
+    if (this.tables.finalStatesToDomain[state]) {
+      // FIXME: wrong determine with newline character for "char \"str\"\n"
+      lexems.push({
+        string: str.substring(lexemStartIndex, str.length),
+        domain: this.tables.finalStatesToDomain[state],
+      })
+    } else if (lexemStartIndex != str.length)
+      lexems.push({
+        string: str.substr(lexemStartIndex),
+        domain: 0,
+      })
+  }
   return lexems;
 }
 
 Lexer.prototype.getLastState = function(string, initialState) {
   for (var i = 0; i < string.length; i += 1) {
-    initialState = this.tables.delta[initialState][this._getEdgeIndexFromSymbol(string[i])]
+    do {
+      initialState = this.tables.delta[initialState][this._getEdgeIndexFromSymbol(string[i])]
+      if (initialState === this.tables.errorState)
+        initialState = 0;
+    } while (initialState === 0)
   }
   return initialState;
 }
