@@ -1,6 +1,6 @@
 /**
  * Based on source code:
- *	- component/rope: https://github.com/component/rope (MIT license)
+ *  - component/rope: https://github.com/component/rope (MIT license)
  *  - google/closure-library (AvlTree): https://github.com/google/closure-library/blob/master/closure/goog/structs/avltree.js
  *       (Apache v2.0 license)
  */
@@ -23,9 +23,9 @@ var RopeSPLIT_LENGTH = 150;
 var RopeJOIN_LENGTH = 100;
 
 function isDefined(arg) {
-	if (typeof arg != 'undefined')
-		return true;
-	return false;
+  if (typeof arg != 'undefined')
+    return true;
+  return false;
 }
 
 /*
@@ -50,161 +50,161 @@ RopePosition = function () {
   if (!(this instanceof RopePosition)) return new RopePosition(arguments);
 
   if (arguments.length == 1 && typeof arguments == 'object')
-  	arguments = arguments[0];
+    arguments = arguments[0];
 
-	if (arguments.length === 1) {
-		if (arguments[0] instanceof RopePosition)
-			return arguments[0]
-		else if (typeof arguments[0] == 'string')
-			return this._fromString(arguments[0])
-		else if (typeof arguments[0] == 'number')
-			return this._fromIndex(arguments[0])
-	} else if (arguments.length === 2)
-		return this._fromLineColumn(arguments[0], arguments[1]);
-	else if (arguments.length === 3)
-		return this._fromFull(arguments[0], arguments[1], arguments[2]);
+  if (arguments.length === 1) {
+    if (arguments[0] instanceof RopePosition)
+      return arguments[0]
+    else if (typeof arguments[0] == 'string')
+      return this._fromString(arguments[0])
+    else if (typeof arguments[0] == 'number')
+      return this._fromIndex(arguments[0])
+  } else if (arguments.length === 2)
+    return this._fromLineColumn(arguments[0], arguments[1]);
+  else if (arguments.length === 3)
+    return this._fromFull(arguments[0], arguments[1], arguments[2]);
 }
 
 RopePosition.prototype.concat = function (position) {
-	if (typeof position == 'undefined')
-		return this;
-	return RopePosition(
-		this.count + position.count,
-		this.lines + position.lines - 1,
-		position.symbolsLastLine + (position.lines == 1? this.symbolsLastLine: 0)
-		)
+  if (typeof position == 'undefined')
+    return this;
+  return RopePosition(
+    this.count + position.count,
+    this.lines + position.lines - 1,
+    position.symbolsLastLine + (position.lines == 1? this.symbolsLastLine: 0)
+  )
 }
 
 /*RopePosition.prototype.convertToRange = function(){
-	this.count -= 1;
-	if (this.symbolsLastLine == 0) {
-		this.line = Math.max(this.line - 1);
-		this.symbolsLastLine = determineLastLineCount();
-	} else {
-		this.symbolsLastLine -= 1;
-	}
+  this.count -= 1;
+  if (this.symbolsLastLine == 0) {
+    this.line = Math.max(this.line - 1);
+    this.symbolsLastLine = determineLastLineCount();
+  } else {
+    this.symbolsLastLine -= 1;
+  }
 }*/
 
 RopePosition.prototype.determineInfo = function(ropeLeaf) {
-	if (this._isDefinedCount()){
+  if (this._isDefinedCount()){
     if (this._isDefinedLinesColumn())
       // already ok
       return
-		else {
-			this.lines = 0;
-			this.symbolsLastLine = 0;
+    else {
+      this.lines = 0;
+      this.symbolsLastLine = 0;
 
-			var newline = true;
-			for (var i = 0; i < this.count; i+=1) {
-				if (newline) {
-					this.lines += 1;
-					this.symbolsLastLine = 0;
-					newline = false;
-				} else
-					this.symbolsLastLine += 1;
-				if (ropeLeaf.value[i] == '\n')
-					newline = true;
-			}
-			return;
-		}
-	} else { // count is not defined
-		if (this._isDefinedLinesColumn()) {
-			this.count = 0;
-			for (var iLines = 1, iSymbols = 0; (iLines < this.lines) || ((iLines === this.lines) && (iSymbols <= this.symbolsLastLine)); this.count += 1) {
-				if (ropeLeaf.value[this.count] == '\n') {
-					iLines += 1;
-					iSymbols = 0;
-				} else
-					iSymbols += 1;
-			}
-		}
-		return;
-	}
-	throw Error('Can\'t determine necassary info due to lack information')
+      var newline = true;
+      for (var i = 0; i < this.count; i+=1) {
+        if (newline) {
+          this.lines += 1;
+          this.symbolsLastLine = 0;
+          newline = false;
+        } else
+          this.symbolsLastLine += 1;
+        if (ropeLeaf.value[i] == '\n')
+          newline = true;
+      }
+      return;
+    }
+  } else { // count is not defined
+    if (this._isDefinedLinesColumn()) {
+      this.count = 0;
+      for (var iLines = 1, iSymbols = 0; (iLines < this.lines) || ((iLines === this.lines) && (iSymbols <= this.symbolsLastLine)); this.count += 1) {
+        if (ropeLeaf.value[this.count] == '\n') {
+          iLines += 1;
+          iSymbols = 0;
+        } else
+          iSymbols += 1;
+      }
+    }
+    return;
+  }
+  throw Error('Can\'t determine necassary info due to lack information')
 }
 
 RopePosition.prototype._fromFull = function(index, lines, column) {
-	var res = RopePosition();
-	res.count = index;
-	res.lines = lines;
-	res.symbolsLastLine = column;
-	return res;
+  var res = RopePosition();
+  res.count = index;
+  res.lines = lines;
+  res.symbolsLastLine = column;
+  return res;
 }
 
 RopePosition.prototype._fromIndex = function(index) {
-	var res = RopePosition();
-	res.count = index;
-	return res;
+  var res = RopePosition();
+  res.count = index;
+  return res;
 }
 
 RopePosition.prototype._fromLineColumn = function(lines, column) {
-	var res = new RopePosition()
-	res.lines = lines;
-	res.symbolsLastLine = column;
-	return res;
+  var res = new RopePosition()
+  res.lines = lines;
+  res.symbolsLastLine = column;
+  return res;
 }
 
 RopePosition.prototype._fromString = function(string) {
-	var res = new RopePosition()
-	res.count = string.length;
-	res.lines = (string.match(/\n/g) || []).length + 1;
-	res.symbolsLastLine = string.length - (string.lastIndexOf('\n') + 1);
-	return res;
+  var res = new RopePosition()
+  res.count = string.length;
+  res.lines = (string.match(/\n/g) || []).length + 1;
+  res.symbolsLastLine = string.length - (string.lastIndexOf('\n') + 1);
+  return res;
 }
 
 RopePosition.prototype._isDefinedCount = function(){
-	return isDefined(this.count);
+  return isDefined(this.count);
 }
 
 RopePosition.prototype._isDefinedLinesColumn = function(){
-	return isDefined(this.lines) && isDefined(this.symbolsLastLine);
+  return isDefined(this.lines) && isDefined(this.symbolsLastLine);
 }
 
 RopePosition.prototype.isLess = function(position) {
-	// this is Range, position is Position
+  // this is Range, position is Position
 
-	if (this._isDefinedCount() && position._isDefinedCount()) {
-		return this.count < position.count - 1;
-	}
+  if (this._isDefinedCount() && position._isDefinedCount()) {
+    return this.count < position.count - 1;
+  }
 
-	if (this._isDefinedLinesColumn() && position._isDefinedLinesColumn()) {
-		return this.lines < position.lines? true:
-			   this.lines == position.lines? this.symbolsLastLine < position.symbolsLastLine: false;
-	}
+  if (this._isDefinedLinesColumn() && position._isDefinedLinesColumn()) {
+    return this.lines < position.lines? true:
+         this.lines == position.lines? this.symbolsLastLine < position.symbolsLastLine: false;
+  }
 
-	throw Error("RopePosition's don't contain the appropriate info")
+  throw Error("RopePosition's don't contain the appropriate info")
 }
 
 RopePosition.prototype.isEqual = function(position) {
-	var ok = false;
-	if (this._isDefinedCount() && position._isDefinedCount())
-		ok = this.count === position.count;
+  var ok = false;
+  if (this._isDefinedCount() && position._isDefinedCount())
+    ok = this.count === position.count;
 
-	if (this._isDefinedLinesColumn && position._isDefinedLinesColumn())
-		ok = ok && (this.lines === position.lines) && (this.symbolsLastLine === position.symbolsLastLine)
+  if (this._isDefinedLinesColumn && position._isDefinedLinesColumn())
+    ok = ok && (this.lines === position.lines) && (this.symbolsLastLine === position.symbolsLastLine)
 
-	return ok;
+  return ok;
 }
 
 /*RopePosition.prototype.isLessOrEqual = function(position) {
-	return this.isLess(position) || this.isEqual(position);
+  return this.isLess(position) || this.isEqual(position);
 }*/
 
 RopePosition.prototype.split = function(positionSecond) {
-	var left = RopePosition(), right = RopePosition();
-	if (this._isDefinedCount() && positionSecond._isDefinedCount()) {
-		left.count = positionSecond.count;
-		right.count = this.count - positionSecond.count;
-	}
+  var left = RopePosition(), right = RopePosition();
+  if (this._isDefinedCount() && positionSecond._isDefinedCount()) {
+    left.count = positionSecond.count;
+    right.count = this.count - positionSecond.count;
+  }
 
-	if (this._isDefinedLinesColumn() && positionSecond._isDefinedLinesColumn()) {
-		left.lines = positionSecond.lines;
-		right.lines = this.lines - positionSecond.lines + 1;
-		left.symbolsLastLine = positionSecond.symbolsLastLine;
-		right.symbolsLastLine = this.symbolsLastLine - (right.lines == 1? positionSecond.symbolsLastLine: 0);
-	}
+  if (this._isDefinedLinesColumn() && positionSecond._isDefinedLinesColumn()) {
+    left.lines = positionSecond.lines;
+    right.lines = this.lines - positionSecond.lines + 1;
+    left.symbolsLastLine = positionSecond.symbolsLastLine;
+    right.symbolsLastLine = this.symbolsLastLine - (right.lines == 1? positionSecond.symbolsLastLine: 0);
+  }
 
-	return [left, right]
+  return [left, right]
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -224,16 +224,16 @@ RopePosition.prototype.split = function(positionSecond) {
  */
 
 RopeNode = function(string, lexer) {
-	// allow usage without `new`
+  // allow usage without `new`
   if (!(this instanceof RopeNode)) return new RopeNode(string, lexer);
 
   this.lexer = lexer;
   this.height = 1;
   if (string) {
-	  this.value = string;
-	  this.length = RopePosition(string);
-	  adjust.call(this);
-	}
+    this.value = string;
+    this.length = RopePosition(string);
+    adjust.call(this);
+  }
 }
 
 /**
@@ -263,39 +263,39 @@ function adjust() {
 
 
 RopeNode.prototype.append = function(rope) {
-	if (!rope)
-		return this;
+  if (!rope)
+    return this;
 
-	var isLeftHigherOrEqual = this.height >= rope.height;
-	var leftSubtree = this;
-	var rightSubtree = rope;
+  var isLeftHigherOrEqual = this.height >= rope.height;
+  var leftSubtree = this;
+  var rightSubtree = rope;
 
-	// find the same depth
-	var levelsDiff = Math.abs(leftSubtree.height - rightSubtree.height)
-	if (isLeftHigherOrEqual) {
-		for (var i = 0; i < levelsDiff && leftSubtree.right; i+=1)
-			leftSubtree = leftSubtree.right;
-	} else { // right is higher
-		for (var i = 0; i < levelsDiff && rightSubtree.left; i+=1)
-			rightSubtree = rightSubtree.left;
-	}
+  // find the same depth
+  var levelsDiff = Math.abs(leftSubtree.height - rightSubtree.height)
+  if (isLeftHigherOrEqual) {
+    for (var i = 0; i < levelsDiff && leftSubtree.right; i+=1)
+      leftSubtree = leftSubtree.right;
+  } else { // right is higher
+    for (var i = 0; i < levelsDiff && rightSubtree.left; i+=1)
+      rightSubtree = rightSubtree.left;
+  }
 
-	var newNode = new RopeNode(null, this.lexer);
-	if (isLeftHigherOrEqual) {
-		if (leftSubtree.parent) leftSubtree.parent.setRight(newNode);
-	} else { // right is higher
-		rightSubtree.parent.setLeft(newNode);
-	}
-	newNode.setLeft(leftSubtree);
-	newNode.setRight(rightSubtree);
-	newNode.recalculate();
-	newNode.balance(newNode)
+  var newNode = new RopeNode(null, this.lexer);
+  if (isLeftHigherOrEqual) {
+    if (leftSubtree.parent) leftSubtree.parent.setRight(newNode);
+  } else { // right is higher
+    rightSubtree.parent.setLeft(newNode);
+  }
+  newNode.setLeft(leftSubtree);
+  newNode.setRight(rightSubtree);
+  newNode.recalculate();
+  newNode.balance(newNode)
 
-	while (newNode.parent) {
-		newNode = newNode.parent;
-		newNode.recalculate();
-	}
-	return newNode;
+  while (newNode.parent) {
+    newNode = newNode.parent;
+    newNode.recalculate();
+  }
+  return newNode;
 }
 
 
@@ -335,96 +335,96 @@ RopeNode.prototype.balance = function(node) {
 };
 
 RopeNode.prototype.checkHeights = function(){
-	if (this.isLeaf()) {
-		if (this.height === 1)
-			return true;
-		else
-			throw Error('Bad height info')
-	}
+  if (this.isLeaf()) {
+    if (this.height === 1)
+      return true;
+    else
+      throw Error('Bad height info')
+  }
 
-	var lh = 0, rh = 0;
-	if (this.left) {
-		this.left.checkHeights()
-		lh = this.left.height;
-	}
-	if (this.right) {
-		this.right.checkHeights()
-		rh = this.right.height;
-	}
-	if (this.height == (Math.max(lh, rh) + 1))
-		return true
-	else
-		throw Error('Bad height info')
+  var lh = 0, rh = 0;
+  if (this.left) {
+    this.left.checkHeights()
+    lh = this.left.height;
+  }
+  if (this.right) {
+    this.right.checkHeights()
+    rh = this.right.height;
+  }
+  if (this.height == (Math.max(lh, rh) + 1))
+    return true
+  else
+    throw Error('Bad height info')
 }
 
 RopeNode.prototype.checkLinks = function () {
-	if (this.isLeaf())
-		return true;
+  if (this.isLeaf())
+    return true;
 
-	if (this.left) {
-		this.left.checkLinks()
-		if (this.left.parent !== this)
-			throw Error('Wrong link')
-	}
+  if (this.left) {
+    this.left.checkLinks()
+    if (this.left.parent !== this)
+      throw Error('Wrong link')
+  }
 
-	if (this.right) {
-		this.right.checkLinks();
-		if (this.right.parent !== this)
-			throw Error('Wrong link')
-	}
+  if (this.right) {
+    this.right.checkLinks();
+    if (this.right.parent !== this)
+      throw Error('Wrong link')
+  }
 
-	return true;
+  return true;
 }
 
 RopeNode.prototype.checkPositions = function() {
-	if (this.left)
-		this.left.checkPositions()
-	if (this.right)
-		this.right.checkPositions()
-	if (this.isLeaf()) {
-		if (!this.length.isEqual(RopePosition(this.value)))
-			throw Error("The length is wrong")
-	} else { // not a leaf
-		var newNode = RopeNode(null, this.lexer)
-		newNode.left = this.left
-		newNode.right = this.right
-		newNode.recalculate()
-		if (!newNode.length.isEqual(this.length))
-			throw Error("The position is wrong")
-	}
-	return true;
+  if (this.left)
+    this.left.checkPositions()
+  if (this.right)
+    this.right.checkPositions()
+  if (this.isLeaf()) {
+    if (!this.length.isEqual(RopePosition(this.value)))
+      throw Error("The length is wrong")
+  } else { // not a leaf
+    var newNode = RopeNode(null, this.lexer)
+    newNode.left = this.left
+    newNode.right = this.right
+    newNode.recalculate()
+    if (!newNode.length.isEqual(this.length))
+      throw Error("The position is wrong")
+  }
+  return true;
 }
 
 RopeNode.prototype.getAbsolutePosition = function(relativePosition) {
-	var curNode = this;
-	while (curNode) {
-		if (curNode.parent && !curNode.isLeftChild()) { // curNode is right child
-			relativePosition = curNode.parent.left.length.concat(relativePosition)
-		}
-		curNode = curNode.parent;
-	}
-	return relativePosition;
+  var curNode = this;
+  while (curNode) {
+    if (curNode.parent && !curNode.isLeftChild()) { // curNode is right child
+      relativePosition = curNode.parent.left.length.concat(relativePosition)
+    }
+    curNode = curNode.parent;
+  }
+  return relativePosition;
 }
 
 RopeNode.prototype.getDot = function(prevPath, direction) {
-	if (typeof prevPath == 'undefined')
-		prevPath = ''
-	if (typeof direction == 'undefined')
-		direction = 'o'
+  if (typeof prevPath == 'undefined')
+    prevPath = ''
+  if (typeof direction == 'undefined')
+    direction = 'o'
 
-	var curPath = prevPath + direction;
+  var curPath = prevPath + direction;
 
-	if (this.isLeaf())
-		return [prevPath, ' -> "', this.value, "\"\n"].join(''); 
-	
+  if (this.isLeaf())
+    return [prevPath, ' -> "', this.value, "\"\n"].join(''); 
+  
 
 
-	var s = [prevPath, ' -> ', curPath, "\n"].join('');
-	if (this.left)
-		s += this.left.getDot(curPath, 'l')
-	if (this.right)
-		s += this.right.getDot(curPath, 'r')
-	return s;
+  var s = [prevPath, ' -> ', curPath, "\n"].join('');
+  if (this.left)
+    s += this.left.getDot(curPath, 'l')
+  if (this.right)
+    s += this.right.getDot(curPath, 'r')
+  return s;
 }
 
 /**
@@ -433,30 +433,30 @@ RopeNode.prototype.getDot = function(prevPath, direction) {
  */
 
 RopeNode.prototype.getNode = function(indexOrPosition) {
-	var position = RopePosition(indexOrPosition);
-	var curNode = this;
+  var position = RopePosition(indexOrPosition);
+  var curNode = this;
   var lexerState = 0;
-	
-	// find the node to start from
-	while (!curNode.isLeaf()) {
-		if (curNode.left && position.isLess(curNode.left.length))
-			curNode = curNode.left;
-		else {
-			if (!curNode.right)
-				console.log(!curNode.right)
-			position = position.split(curNode.left.length)[1];
+  
+  // find the node to start from
+  while (!curNode.isLeaf()) {
+    if (curNode.left && position.isLess(curNode.left.length))
+      curNode = curNode.left;
+    else {
+      if (!curNode.right)
+        console.log(!curNode.right)
+      position = position.split(curNode.left.length)[1];
       lexerState = curNode.left.transitionTable.table[lexerState];
-			curNode = curNode.right;
-		}
-	}
+      curNode = curNode.right;
+    }
+  }
 
-	position.determineInfo(curNode);
-	return {'node': curNode, 'position': position, 'lexerState': lexerState}
+  position.determineInfo(curNode);
+  return {'node': curNode, 'position': position, 'lexerState': lexerState}
 }
 
 
 RopeNode.prototype.isLeaf = function() {
-	return typeof this.value != 'undefined';
+  return typeof this.value != 'undefined';
 }
 
 /**
@@ -480,47 +480,47 @@ RopeNode.prototype.leftRotate = function(node) {
   var oldNodeRight = node.right;
 
   // Re-assign parent-child references for the parent of the node being removed
-	if (node.parent) {
-		if (node.isLeftChild())
-			node.parent.setLeft(oldNodeRight);
-		else // is right child
-			node.parent.setRight(oldNodeRight);
-	} else {
-		oldNodeRight.parent = null;
-	}
+  if (node.parent) {
+    if (node.isLeftChild())
+      node.parent.setLeft(oldNodeRight);
+    else // is right child
+      node.parent.setRight(oldNodeRight);
+  } else {
+    oldNodeRight.parent = null;
+  }
 
-	// Re-assign parent-child references for the child of the node being removed
+  // Re-assign parent-child references for the child of the node being removed
   node.setRight(oldNodeRight.left);
-	oldNodeRight.setLeft(node);
+  oldNodeRight.setLeft(node);
   
-	node.recalculate();
-	oldNodeRight.recalculate();
-	if (oldNodeRight.parent) oldNodeRight.parent.recalculate();
+  node.recalculate();
+  oldNodeRight.recalculate();
+  if (oldNodeRight.parent) oldNodeRight.parent.recalculate();
 };
 
 RopeNode.prototype.recalculate = function() {
-	var lh = this.left ? this.left.height : 0;
-	var rh = this.right ? this.right.height : 0;
-	this.height = Math.max(lh, rh) + 1;
+  var lh = this.left ? this.left.height : 0;
+  var rh = this.right ? this.right.height : 0;
+  this.height = Math.max(lh, rh) + 1;
 
-	if (!this.isLeaf()) {
-		if (this.left) {
-			if (this.right) {
-				this.length = this.left.length.concat(this.right.length)
+  if (!this.isLeaf()) {
+    if (this.left) {
+      if (this.right) {
+        this.length = this.left.length.concat(this.right.length)
         this.transitionTable = this.left.transitionTable.concat(this.right.transitionTable);
       }
-			else { // only left
-				this.length = this.left.length
-				this.transitionTable = this.left.transitionTable;
+      else { // only left
+        this.length = this.left.length
+        this.transitionTable = this.left.transitionTable;
       }
-		} else { // only right
-			this.length = this.right.length;
+    } else { // only right
+      this.length = this.right.length;
       this.transitionTable = this.right.transitionTable;
     }
-	} else { // is leaf
-		this.length = RopePosition(this.value)
+  } else { // is leaf
+    this.length = RopePosition(this.value)
     this.transitionTable = LexerTransitionTable(this.lexer, this.value)
-	}
+  }
 }
 
 /**
@@ -533,32 +533,32 @@ RopeNode.prototype.rightRotate = function(node) {
   var oldNodeLeft = node.left;
 
   // Re-assign parent-child references for the parent of the node being removed
-	if (node.parent) {
-  	if (node.isLeftChild())
-    	node.parent.setLeft(oldNodeLeft);
-  	else // is right child
-    	node.parent.setRight(oldNodeLeft);
-	} else {
-		oldNodeLeft.parent = null;
-	}
+  if (node.parent) {
+    if (node.isLeftChild())
+      node.parent.setLeft(oldNodeLeft);
+    else // is right child
+      node.parent.setRight(oldNodeLeft);
+  } else {
+    oldNodeLeft.parent = null;
+  }
   
-	// Re-assign parent-child references for the child of the node being removed
-	node.setLeft(oldNodeLeft.right);
-	oldNodeLeft.setRight(node);
-	
-	node.recalculate();
-	oldNodeLeft.recalculate();
-	if (oldNodeLeft.parent) oldNodeLeft.parent.recalculate();
+  // Re-assign parent-child references for the child of the node being removed
+  node.setLeft(oldNodeLeft.right);
+  oldNodeLeft.setRight(node);
+  
+  node.recalculate();
+  oldNodeLeft.recalculate();
+  if (oldNodeLeft.parent) oldNodeLeft.parent.recalculate();
 };
 
 RopeNode.prototype.setLeft = function(ropeNode) {
-	this.left = ropeNode;
-	this.left.parent = this;
+  this.left = ropeNode;
+  this.left.parent = this;
 }
 
 RopeNode.prototype.setRight = function(ropeNode) {
-	this.right = ropeNode;
-	this.right.parent = this;
+  this.right = ropeNode;
+  this.right.parent = this;
 }
 
 /**
@@ -566,40 +566,40 @@ RopeNode.prototype.setRight = function(ropeNode) {
  */
 
 RopeNode.prototype.split = function(indexSecond) {
-	if (indexSecond < 0 || !(indexSecond < this.length.count))
-		throw RangeError('indexSecond is not within rope bounds')
-	
-	var left, right, res
+  if (indexSecond < 0 || !(indexSecond < this.length.count))
+    throw RangeError('indexSecond is not within rope bounds')
+  
+  var left, right, res
 
-	if (this.isLeaf()) {
-		left = this.value.substr(0, indexSecond);
-		left = left == ''? null: RopeNode(left, this.lexer);
-		right = this.value.substr(indexSecond);
-		right = right == ''? null: RopeNode(right, this.lexer);
-		return [left, right]
-	}
+  if (this.isLeaf()) {
+    left = this.value.substr(0, indexSecond);
+    left = left == ''? null: RopeNode(left, this.lexer);
+    right = this.value.substr(indexSecond);
+    right = right == ''? null: RopeNode(right, this.lexer);
+    return [left, right]
+  }
 
-	if (this.left && (indexSecond < this.left.length.count)) { // go left
-		right = this.right;
-		this.unsetRight();
-		res = this.left.split(indexSecond);
-		left = res[0]
-		if (res[1])
-			right = res[1].append(right);
-		else
-			right.parent = null;
-	} else { // else go_right
-		left = this.left;
-		this.unsetLeft();
-		res = this.right.split(indexSecond - left.length.count);
-		if (left)
-			left = left.append(res[0])
-		else
-			left = res[0]
-		right = res[1]
-	}
+  if (this.left && (indexSecond < this.left.length.count)) { // go left
+    right = this.right;
+    this.unsetRight();
+    res = this.left.split(indexSecond);
+    left = res[0]
+    if (res[1])
+      right = res[1].append(right);
+    else
+      right.parent = null;
+  } else { // else go_right
+    left = this.left;
+    this.unsetLeft();
+    res = this.right.split(indexSecond - left.length.count);
+    if (left)
+      left = left.append(res[0])
+    else
+      left = res[0]
+    right = res[1]
+  }
 
-	return [left, right]
+  return [left, right]
 }
 
 RopeNode.prototype.toString = function() {
@@ -629,25 +629,25 @@ RopeNode.prototype.toString = function() {
  * @private
  */
 RopeNode.prototype.traverse = function(traversalFunc, opt_startNode, opt_endNode) {
-	var node = opt_startNode ? opt_startNode : this.root_;
-	var endNode = opt_endNode ? opt_endNode : null;
-	while (node && node != endNode) {
-		node = traversalFunc.call(this, node);
-	}
+  var node = opt_startNode ? opt_startNode : this.root_;
+  var endNode = opt_endNode ? opt_endNode : null;
+  while (node && node != endNode) {
+    node = traversalFunc.call(this, node);
+  }
 };
 
 RopeNode.prototype.unsetLeft = function() {
-	if (!this.left) return;
-	this.left.parent = null;
-	this.left = null;
-	this.recalculate();
+  if (!this.left) return;
+  this.left.parent = null;
+  this.left = null;
+  this.recalculate();
 }
 
 RopeNode.prototype.unsetRight = function() {
-	if (!this.right) return;
-	this.right.parent = null;
-	this.right = null;
-	this.recalculate();
+  if (!this.right) return;
+  this.right.parent = null;
+  this.right = null;
+  this.recalculate();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -660,7 +660,7 @@ Rope = function(string, lexer) {
   if (isDefined(lexer))
     this.lexer = lexer;
 
-	this.rope = new RopeNode(string, lexer)
+  this.rope = new RopeNode(string, lexer)
 }
 
 /*
@@ -668,14 +668,14 @@ Rope = function(string, lexer) {
  */
 
 Rope.prototype._getIndexFromPosition = function(indexOrPosition, defaultValue) {
-	if (!isDefined(indexOrPosition))
-		return defaultValue;
+  if (!isDefined(indexOrPosition))
+    return defaultValue;
 
-	if (typeof indexOrPosition == 'number')
-		// this is index
-		return indexOrPosition;
-	var target = this.rope.getNode(indexOrPosition);
-	return target.node.getAbsolutePosition(target.position).count - 1;
+  if (typeof indexOrPosition == 'number')
+    // this is index
+    return indexOrPosition;
+  var target = this.rope.getNode(indexOrPosition);
+  return target.node.getAbsolutePosition(target.position).count - 1;
 }
 
 // ASSUME: position has 'line' and 'symbolsLastLine' (column) properties
@@ -723,28 +723,28 @@ Rope.prototype.getLinesCount = function () {
 }
 
 Rope.prototype.insert = function(startPosition, stringOrRope) {
-	var startIndex = this._getIndexFromPosition(startPosition);
-	// FIXME: determine can we add to the only one leaf or to neighbour instead of create new leaf
-	var split = this.rope.split(startIndex);
-	this.rope = RopeNode(stringOrRope, this.lexer).append(split[1]);
-	if (split[0])
-		this.rope = split[0].append(this.rope)
+  var startIndex = this._getIndexFromPosition(startPosition);
+  // FIXME: determine can we add to the only one leaf or to neighbour instead of create new leaf
+  var split = this.rope.split(startIndex);
+  this.rope = RopeNode(stringOrRope, this.lexer).append(split[1]);
+  if (split[0])
+    this.rope = split[0].append(this.rope)
 }
 
 Rope.prototype.remove = function(startPosition, endPosition) {
-	var startIndex = this._getIndexFromPosition(startPosition);
-	var endIndex = this._getIndexFromPosition(endPosition);
-	// FIXME: determine can we join two leafs in the break
-	var split = this.rope.split(startIndex);
-	var split2 = split[1].split(endIndex - startIndex + 1);
-	if (split[0])
-		this.rope = split[0].append(split2[1]);
-	else {
-		if (split2[1])
-			this.rope = split2[1]
-		else
-			this.rope = RopeNode("", this.lexer)
-	}
+  var startIndex = this._getIndexFromPosition(startPosition);
+  var endIndex = this._getIndexFromPosition(endPosition);
+  // FIXME: determine can we join two leafs in the break
+  var split = this.rope.split(startIndex);
+  var split2 = split[1].split(endIndex - startIndex + 1);
+  if (split[0])
+    this.rope = split[0].append(split2[1]);
+  else {
+    if (split2[1])
+      this.rope = split2[1]
+    else
+      this.rope = RopeNode("", this.lexer)
+  }
 }
 
 /*
@@ -752,8 +752,8 @@ Rope.prototype.remove = function(startPosition, endPosition) {
  */
 
 Rope.prototype.substr = function(startPosition, endPosition) {
-	startPosition = isDefined(startPosition)? startPosition: 0;
-	endPosition = isDefined(endPosition)? endPosition: this.rope.length.count;
+  startPosition = isDefined(startPosition)? startPosition: 0;
+  endPosition = isDefined(endPosition)? endPosition: this.rope.length.count;
 
   // ASSUME: startPosition and endPosition are on the same line and endPosition >= startPosition.
   //   In other case, the logic of determine if position not in bounds will be wrong
@@ -766,23 +766,23 @@ Rope.prototype.substr = function(startPosition, endPosition) {
         this.rope.length.count;
   }
   
-	var startNode = this.rope.getNode(startPosition);
-	var endNode = this.rope.getNode(endPosition);
+  var startNode = this.rope.getNode(startPosition);
+  var endNode = this.rope.getNode(endPosition);
 
-	if (startNode.node === endNode.node)
-		return startNode.node.value.substring(startNode.position.count - 1, endNode.position.count)
-	
-	var str = new Array();
-	str.push(startNode.node.value.substring(startNode.position.count - 1));
+  if (startNode.node === endNode.node)
+    return startNode.node.value.substring(startNode.position.count - 1, endNode.position.count)
+  
+  var str = new Array();
+  str.push(startNode.node.value.substring(startNode.position.count - 1));
 
   
   this._traverseLeafs(startNode.node, endNode.node, function(leaf){
     if (leaf !== startNode.node && leaf !== endNode.node)
       str.push(leaf.value);
   })
-	str.push(endNode.node.value.substring(0, endNode.position.count))
+  str.push(endNode.node.value.substring(0, endNode.position.count))
 
-	return str.join('')
+  return str.join('')
 }
 
 /*
@@ -823,7 +823,7 @@ Rope.prototype._traverseNodes = function(startNode, endNode, func) {
 }
 
 Rope.prototype.getDot = function() {
-	return this.rope.getDot() 
+  return this.rope.getDot() 
 }
 
 return {
