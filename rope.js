@@ -261,6 +261,26 @@ function adjust() {
   this.recalculate();
 }
 
+RopeNode.prototype.adjust = function(){
+  if (this.isLeaf()) {
+    if (this.length.count > RopeSPLIT_LENGTH) {
+      var divide = Math.floor(this.length.count / 2);
+      this.setLeft(new RopeNode(this.value.substring(0, divide), this.lexer));
+      this.setRight(new RopeNode(this.value.substring(divide), this.lexer));
+      delete this.value;
+      this.recalculate();
+      this.balance(this);
+    }
+  } else if (this.height === 2){
+    if (this.length.count < RopeJOIN_LENGTH) {
+      this.value = this.left.toString() + this.right.toString();
+      this.unsetLeft();
+      this.unsetRight();
+      this.recalculate();
+      this.balance(this);
+    }
+  }
+}
 
 RopeNode.prototype.append = function(rope) {
   if (!rope)
@@ -429,7 +449,7 @@ RopeNode.prototype.getDot = function(prevPath, direction) {
 
 /**
  * @param {int|RopePosition} indexOrPosition The absolute symbol index as if rope contains one big string OR The absolute position of symbol the return node must contain. This position may not define index of symbol because the search only use lines/column info
- * @return {{node: RopeNode, position: RopePosition}} Always return RopePosition with full info
+ * @return {{node: RopeNode, position: RopePosition, lexerState: int}} Always return RopePosition with full info
  */
 
 RopeNode.prototype.getNode = function(indexOrPosition) {
@@ -723,27 +743,47 @@ Rope.prototype.getLinesCount = function () {
 }
 
 Rope.prototype.insert = function(startPosition, stringOrRope) {
-  var startIndex = this._getIndexFromPosition(startPosition);
-  // FIXME: determine can we add to the only one leaf or to neighbour instead of create new leaf
-  var split = this.rope.split(startIndex);
-  this.rope = RopeNode(stringOrRope, this.lexer).append(split[1]);
-  if (split[0])
-    this.rope = split[0].append(this.rope)
+  if (typeof stringOrRope == 'string' && stringOrRope.length < RopeSPLIT_LENGTH) {
+    var node = this.rope.getNode(startPosition);
+    var position = node.position;
+    var node = node.node;
+    node.value = node.value.substring(0, position.count - 1) + stringOrRope + node.value.substring(position.count - 1);
+    node.recalculate();
+    node.adjust();
+  } else {
+    var startIndex = this._getIndexFromPosition(startPosition);
+    // FIXME: determine can we add to the only one leaf or to neighbour instead of create new leaf
+    var split = this.rope.split(startIndex);
+    this.rope = RopeNode(stringOrRope, this.lexer).append(split[1]);
+    if (split[0])
+      this.rope = split[0].append(this.rope)
+  }
 }
 
 Rope.prototype.remove = function(startPosition, endPosition) {
-  var startIndex = this._getIndexFromPosition(startPosition);
-  var endIndex = this._getIndexFromPosition(endPosition);
-  // FIXME: determine can we join two leafs in the break
-  var split = this.rope.split(startIndex);
-  var split2 = split[1].split(endIndex - startIndex + 1);
-  if (split[0])
-    this.rope = split[0].append(split2[1]);
-  else {
-    if (split2[1])
-      this.rope = split2[1]
-    else
-      this.rope = RopeNode("", this.lexer)
+  var startNode = this.rope.getNode(startPosition);
+  var endNode = this.rope.getNode(endPosition);
+  if (startNode.node === endNode.node) {
+    startPosition = startNode.position;
+    endPosition = endNode.position;
+    startNode = startNode.node;
+    startNode.value = startNode.value.substring(0, startPosition.count - 1) + startNode.value.substring(endPosition.count);
+    startNode.recalculate();
+    startNode.parent.adjust();
+  } else {
+    var startIndex = this._getIndexFromPosition(startPosition);
+    var endIndex = this._getIndexFromPosition(endPosition);
+    // FIXME: determine can we join two leafs in the break
+    var split = this.rope.split(startIndex);
+    var split2 = split[1].split(endIndex - startIndex + 1);
+    if (split[0])
+      this.rope = split[0].append(split2[1]);
+    else {
+      if (split2[1])
+        this.rope = split2[1]
+      else
+        this.rope = RopeNode("", this.lexer)
+    }
   }
 }
 
