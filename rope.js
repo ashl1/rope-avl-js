@@ -19,8 +19,8 @@
     }
 })(function() {
   
-var RopeSPLIT_LENGTH = 150;
-var RopeJOIN_LENGTH = 100;
+var RopeSPLIT_LENGTH = 1500;
+var RopeJOIN_LENGTH = 1000;
 
 function isDefined(arg) {
   if (typeof arg != 'undefined')
@@ -223,6 +223,10 @@ RopePosition.prototype.split = function(positionSecond) {
  * 
  */
 
+/*
+ * Assume the string length < RopeSPLIT_LENGTH
+ */
+
 RopeNode = function(string, lexer) {
   // allow usage without `new`
   if (!(this instanceof RopeNode)) return new RopeNode(string, lexer);
@@ -231,36 +235,9 @@ RopeNode = function(string, lexer) {
   this.height = 1;
   if (string) {
     this.value = string;
-    this.length = RopePosition(string);
-    adjust.call(this);
+    this.recalculate()
   }
 }
-
-/**
- * Adjusts the tree structure, so that very long nodes are split
- * and short ones are joined
- *
- * @api private
- */
-
-function adjust() {
-  if (this.isLeaf()) {
-    if (this.length.count > RopeSPLIT_LENGTH) {
-      var divide = Math.floor(this.length.count / 2);
-      this.setLeft(new RopeNode(this.value.substring(0, divide), this.lexer));
-      this.setRight(new RopeNode(this.value.substring(divide), this.lexer));
-      delete this.value;
-    }
-  } else {
-    if (this.length.count < RopeJOIN_LENGTH) {
-      this.value = this.left.toString() + this.right.toString();
-      this.unsetLeft();
-      this.unsetRight();
-    }
-  }
-  this.recalculate();
-}
-
 
 RopeNode.prototype.append = function(rope) {
   if (!rope)
@@ -660,7 +637,41 @@ Rope = function(string, lexer) {
   if (isDefined(lexer))
     this.lexer = lexer;
 
-  this.rope = new RopeNode(string, lexer)
+  
+  // make the tree from leafs to root
+  var substrSize = Math.floor((RopeSPLIT_LENGTH + RopeJOIN_LENGTH) / 2)
+  var nodesOnLevelCount = Math.ceil(string.length / substrSize);
+  var nodesOnLevel = new Array(nodesOnLevelCount);
+  var time = Date.now(), time2, startTime = time;
+  console.log('start at \t\t\t' + time)
+  for (var substrStart = 0, i = 0; substrStart < string.length; substrStart += substrSize, i += 1) {
+    nodesOnLevel[i] = new RopeNode(string.substring(substrStart, substrStart + substrSize), lexer)
+    time2 = Date.now()
+    if (time2 - time >= 1000) {
+      console.log((Math.floor(i / nodesOnLevelCount * 10000) / 100) + '% rope leafs proceeded for ' + (Math.round((time2 - time) / (1000 / 10)) / 10) + ' seconds')
+      time = time2;
+    }
+  }
+  time = startTime;
+  
+  time2 = Date.now()
+  console.log('leafs created at \t' + time2 + '\t(' + (Math.round((time2 - time) / (1000 / 100)) / 100) + ' seconds)')
+  time = time2
+  while (nodesOnLevelCount > 1) {
+    var i, newLevelCount = Math.floor(nodesOnLevelCount / 2);
+    for (i = 0; i < newLevelCount; i += 1)
+      nodesOnLevel[i] = nodesOnLevel[i * 2].append(nodesOnLevel[i * 2 + 1]);
+    
+    if (i * 2 + 1 === nodesOnLevelCount) { // the odd count of nodes
+      nodesOnLevel[i] = nodesOnLevel[i*2];
+      nodesOnLevelCount = newLevelCount + 1;
+    } else
+      nodesOnLevelCount = newLevelCount;
+  }
+  time2 = Date.now()
+  console.log('finished at \t\t' + time2 + '\t(' + (time2 - time) + ' ms)')
+  console.log('==========================')
+  this.rope = nodesOnLevel[0]
 }
 
 /*
