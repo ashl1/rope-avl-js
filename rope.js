@@ -233,7 +233,7 @@ RopeNode = function(string, lexer) {
 
   this.lexer = lexer;
   this.height = 1;
-  if (string) {
+  if (typeof string == 'string') {
     this.value = string;
     this.recalculate()
   }
@@ -665,6 +665,10 @@ Rope = function(string, lexer) {
   if (isDefined(lexer))
     this.lexer = lexer;
 
+  if (!string.length) {
+    this.rope = new RopeNode('', lexer);
+    return;
+  }
   
   // make the tree from leafs to root
   var substrSize = Math.floor((RopeSPLIT_LENGTH + RopeJOIN_LENGTH) / 2)
@@ -727,6 +731,8 @@ Rope.prototype._isPositionInBounds = function(position) {
 }
 
 Rope.prototype.getLexems = function(startPosition, endPosition) {
+  if (!this._isPositionInBounds(startPosition))
+    return [];
   return this.lexer.getLexems(this.substr(startPosition, endPosition), this._getLexerState(startPosition));
 }
 
