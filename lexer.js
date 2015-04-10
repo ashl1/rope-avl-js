@@ -524,20 +524,50 @@ Lexer.prototype._getEdgeIndexFromSymbol = function(symbol){
 
 
 Lexer.prototype._getTransitionTable = function(str){
-  var transitionTable = new Array(this.tables.delta.length);
-  for (var i = 0; i < transitionTable.length; i += 1)
-    transitionTable[i] = i;
+  var transitionTables = [];
+  transitionTables.push(new Array(this.tables.delta.length));
+  for (var i = 0; i < transitionTables[0].length; i += 1)
+    transitionTables[0][i] = i;
   
-  for (var iString = 0; iString < str.length; iString += 1)
-    for (var i = 0; i < transitionTable.length; i += 1) {
-      do {
-        transitionTable[i] = this.tables.delta[transitionTable[i]][this._getEdgeIndexFromSymbol(str[iString])]
-        if (transitionTable[i] == this.tables.errorState)
-          transitionTable[i] = 0;
-      } while (transitionTable[i] == 0)
+  transitionTables.push(new Array());
+  var newState, indexNewState;
+  var prevTable, nextTable;
+  var tempTableForIndexToState = new Array(this.tables.delta.length);
+  for (var iString = 0; iString < str.length; iString += 1) {
+    prevTable = transitionTables[transitionTables.length - 2];
+    nextTable = transitionTables[transitionTables.length - 1];
+    for (var i = 0; i < prevTable.length; i += 1) {
+      newState = this.tables.delta[prevTable[i]][this._getEdgeIndexFromSymbol(str[iString])]
+      if (newState == this.tables.errorState)
+        // assume state doesn't change from 0 to 0
+        newState = this.tables.delta[0][this._getEdgeIndexFromSymbol(str[iString])];
+      indexNewState = nextTable.indexOf(newState);
+      if (indexNewState < 0) {
+        nextTable.push(newState);
+        indexNewState = nextTable.length - 1;
+      }
+      tempTableForIndexToState[i] = indexNewState;
     }
+    if (nextTable.length < prevTable.length) {
+      // the value for prevTable became the index to the newTable's state
+      for (var i = 0; i < prevTable.length; i += 1)
+        prevTable[i] = tempTableForIndexToState[i];
+      
+      transitionTables.push(new Array());
+      tempTableForIndexToState = new Array(nextTable.length);
+    } else {
+      // nextTable size are the same to prevTable size => change the value to new state
+      for (var i = 0; i < prevTable.length; i += 1)
+        prevTable[i] = nextTable[tempTableForIndexToState[i]];
+      transitionTables[transitionTables.length - 1] = [];
+    }
+  }
   
-  return transitionTable;
+  // walk through the chain of states from first
+  for (var iState = 0; iState < transitionTables[0].length; iState += 1)
+    for (var iTable = 1; iTable <= transitionTables.length - 2; iTable += 1)
+      transitionTables[0][iState] = transitionTables[iTable][transitionTables[0][iState]];
+  return transitionTables[0];
 }
 
 /*

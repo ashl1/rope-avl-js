@@ -680,7 +680,7 @@ Rope = function(string, lexer) {
     nodesOnLevel[i] = new RopeNode(string.substring(substrStart, substrStart + substrSize), lexer)
     time2 = Date.now()
     if (time2 - time >= 1000) {
-      console.log((Math.floor(i / nodesOnLevelCount * 10000) / 100) + '% rope leafs proceeded for ' + (Math.round((time2 - time) / (1000 / 10)) / 10) + ' seconds')
+      console.log((Math.floor(i / nodesOnLevelCount * 10000) / 100) + '% rope leafs proceeded for ' + (Math.round((time2 - startTime) / (1000 / 10)) / 10) + ' seconds')
       time = time2;
     }
   }
