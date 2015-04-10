@@ -773,7 +773,10 @@ Rope.prototype.insert = function(startPosition, stringOrRope) {
     var position = node.position;
     var node = node.node;
     node.value = node.value.substring(0, position.count - 1) + stringOrRope + node.value.substring(position.count - 1);
-    node.recalculate();
+    node.traverse(function(node){
+      node.recalculate();
+      return node.parent;
+    }, node);
     node.adjust();
   } else {
     var startIndex = this._getIndexFromPosition(startPosition);
@@ -792,7 +795,10 @@ Rope.prototype.remove = function(startPosition, endPosition) {
     endPosition = endNode.position;
     startNode = startNode.node;
     startNode.value = startNode.value.substring(0, startPosition.count - 1) + startNode.value.substring(endPosition.count);
-    startNode.recalculate();
+    startNode.traverse(function(node){
+      node.recalculate();
+      return node.parent;
+    }, startNode);
     startNode.parent.adjust();
   } else {
     var startIndex = this._getIndexFromPosition(startPosition);
